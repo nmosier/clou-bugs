@@ -3,7 +3,7 @@ Variant A
 
 In function: `_sodium_base642bin_skip_padding`
 
-[sodium/codec.c:253](https://github.com/jedisct1/libsodium/blob/d30251f03e646abd07b5399654f1f5dcea9a6b38/src/libsodium/sodium/codecs.c#L253)
+[sodium/codecs.c:253](https://github.com/jedisct1/libsodium/blob/d30251f03e646abd07b5399654f1f5dcea9a6b38/src/libsodium/sodium/codecs.c#L253)
 
 Code snippet:
 ```
