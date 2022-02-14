@@ -4,7 +4,7 @@ In this repository, we present Spectre v1 and v4 bugs we have discovered using C
 Each of these bugs have the potential to leak arbitrary memory in the victim program.
 
 ## Spectre v1
-Description.
+See [paper](https://spectreattack.com).
 
 ## Spectre v4
 
