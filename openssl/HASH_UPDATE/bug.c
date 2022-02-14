@@ -1,21 +1,19 @@
-static void
-SHA256_Pad(crypto_hash_sha256_state *state, uint32_t tmp32[64 + 8])
+int HASH_UPDATE(HASH_CTX *c, const void *data_, size_t len)
 {
-    unsigned int r;
-    unsigned int i;
+    ...
+    size_t n;
+    ...
+    n = c->num; // <<< speculative store bypass
+    if (n != 0) {
+        p = (unsigned char *)c->data;
 
-    r = (unsigned int) ((state->count >> 3) & 0x3f); // <<< speculative store bypass
-    if (r < 56) {
-        for (i = 0; i < 56 - r; i++) {
-            state->buf[r + i] = PAD[i]; // <<< secret `r` used as index into state->buf[]
+        if (len >= HASH_CBLOCK || len + n >= HASH_CBLOCK) {
+            memcpy(p + n, data, HASH_CBLOCK - n); // <<< memcpy() dereferences secret-tainted pointer
+            ...
+        } else {
+            memcpy(p + n, data, len); // <<< memcpy() dereferences secret-tainted pointer
+            ...
         }
-    } else {
-        for (i = 0; i < 64 - r; i++) {
-            state->buf[r + i] = PAD[i]; // <<< secret `r` used as index into state->buf[]
-        }
-        SHA256_Transform(state->state, state->buf, &tmp32[0], &tmp32[64]);
-        memset(&state->buf[0], 0, 56);
     }
-    STORE64_BE(&state->buf[56], state->count);
-    SHA256_Transform(state->state, state->buf, &tmp32[0], &tmp32[64]);
+    ...
 }
