@@ -1,11 +1,14 @@
 #include <stdatomic.h>
 
-int HASH_FINAL(unsigned char *md, HASH_CTX *c)
+const EVP_PKEY_ASN1_METHOD *EVP_PKEY_asn1_get0(int idx)
 {
-    ...
-    atomic_thread_fence(memory_order_acquire);
-    size_t n = c->num; // <<< speculative store bypass
-
-    p[n] = 0x80; // <<< secret in `n` leaked through array access
-    ...
+    int num = OSSL_NELEM(standard_methods);
+    if (idx < 0)
+        return NULL;
+    if (idx < num) { // <<< speculative bounds check bypass
+        atomic_thread_fence(memory_fence_acquire);
+        return standard_methods[idx]; // <<< speculative out-of-bounds access returns secret
+    }
+    idx -= num;
+    return sk_EVP_PKEY_ASN1_METHOD_value(app_methods, idx);
 }
