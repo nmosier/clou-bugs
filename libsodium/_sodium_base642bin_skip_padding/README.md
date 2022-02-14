@@ -1,4 +1,4 @@
-Spectre v4 Vulnerability (Variant A)
+## Spectre v4 Vulnerability (Variant A)
 
 ### Location
 - Function: `_sodium_base642bin_skip_padding`
