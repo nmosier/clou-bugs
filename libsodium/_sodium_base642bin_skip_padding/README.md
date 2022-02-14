@@ -18,7 +18,7 @@ _sodium_base642bin_skip_padding(const char * const b64, const size_t b64_len,
             errno = ERANGE;
             return -1;
         }
-        c = b64[*b64_pos_p]; // speculative store bypass
+        c = b64[*b64_pos_p]; // <<< speculative store bypass
         if (c == '=') {
             padding_len--;
         } else if (ignore == NULL || strchr(ignore, c) == NULL) {
