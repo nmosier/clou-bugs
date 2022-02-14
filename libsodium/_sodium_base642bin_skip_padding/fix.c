@@ -1,3 +1,5 @@
+#include <stdatomic.h>
+
 static int
 _sodium_base642bin_skip_padding(const char * const b64, const size_t b64_len,
                                 size_t * const b64_pos_p,
