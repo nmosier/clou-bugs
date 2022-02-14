@@ -1,37 +1,27 @@
-## Spectre v4 Vulnerability (Variant B)
+## Spectre v1 Vulnerability
 
 ### Location
-- Function: `HASH_UPDATE`
-- File: [include/crypto/md32_common.h:145](https://github.com/openssl/openssl/blob/065121ff198a84106023013420dedd57ac4ff53a/include/crypto/md32_common.h#L145)
+- Function: `EVP_PKEY_asn1_get0`
+- File: [crypto/asn1/ameth_lib.c:52](https://github.com/openssl/openssl/blob/065121ff198a84106023013420dedd57ac4ff53a/crypto/asn1/ameth_lib.c#L52)
 
 ### Code Snippet
 ```
-int HASH_UPDATE(HASH_CTX *c, const void *data_, size_t len)
+const EVP_PKEY_ASN1_METHOD *EVP_PKEY_asn1_get0(int idx)
 {
-    ...
-    size_t n;
-    ...
-    n = c->num; // <<< speculative store bypass
-    if (n != 0) {
-        p = (unsigned char *)c->data;
-
-        if (len >= HASH_CBLOCK || len + n >= HASH_CBLOCK) {
-            memcpy(p + n, data, HASH_CBLOCK - n); // <<< memcpy() dereferences secret-tainted pointer
-            ...
-        } else {
-            memcpy(p + n, data, len); // <<< memcpy() dereferences secret-tainted pointer
-            ...
-        }
-    }
-    ...
+    int num = OSSL_NELEM(standard_methods);
+    if (idx < 0)
+        return NULL;
+    if (idx < num) // <<< speculative bounds check bypass
+        return standard_methods[idx]; // <<< speculative out-of-bounds access returns secret
+    idx -= num;
+    return sk_EVP_PKEY_ASN1_METHOD_value(app_methods, idx);
 }
 ```
 
 ### Explanation
-The struct pointer parameter `c` is stored to the stack upon entry to the function.
-The subsequent load of `c` on line 145 may read the stale value at that stack memory location via Speculative Store Bypass ([CVE-2018-3639](https://cve.org/CVERecord?id=CVE-2018-3639)).
-If that stale value is attacker-controlled, the struct member access `c->num` on line 145 may read an arbitrary secret from memory, which is subsequently stored to the stack in index `n`.
-Index `n` is then used in pointer arithmetic with `p` and then dereferenced by `memcpy()` on lines 150 and 164, leaking the value of the secret in `n`.
+Line 52 performs a bounds check on the attacker-controlled parameter `idx`.
+If `idx` is out of bounds (`idx >= num`) but the processor predicts that `idx < num`, the body of the if-statement is executed, and the out-of-bounds load from the array `standard_methods[idx]` returns an arbitrary secret in memory, reinterpreted as a pointer.
+The caller of `EVP_PKEY_asn1_get0` then reads from the tainted pointer, leaking the arbitrary secret.
 
 This vulnerability may allow an attacker to leak arbitrary data in memory.
 
@@ -42,6 +32,11 @@ $ diff bug.c fix.c
 0a1,2
 > #include <stdatomic.h>
 > 
-5a8
->     atomic_thread_fence(memory_order_acquire);
+6c8,9
+<     if (idx < num) // <<< speculative bounds check bypass
+---
+>     if (idx < num) { // <<< speculative bounds check bypass
+>         atomic_thread_fence(memory_fence_acquire);
+7a11
+>     }
 ```
