@@ -30,7 +30,7 @@ Like in Variant A, the load of `ptr` from the stack on line 2 may read a stale v
 This time, the secret intermediate value is stored back onto the stack.
 Later on, it is read back from memory and the secret is used to index into an array, leaking the secret into the cache.
 
-# Variant C: Spectre v4 with Out of Bounds (OOB) Write
+### Variant C: Spectre v4 with Out of Bounds (OOB) Write
 ```
 int *ptr = ...;
 int idx = 0; // bypassed store
