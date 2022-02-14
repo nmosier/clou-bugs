@@ -12,7 +12,7 @@ _sodium_base642bin_skip_padding(const char * const b64, const size_t b64_len,
             errno = ERANGE;
             return -1;
         }
-	atomic_memory_fence(memory_order_acquire);		
+	atomic_thread_fence(memory_order_acquire);		
         c = b64[*b64_pos_p]; // speculative store bypass
         if (c == '=') {
             padding_len--;

@@ -45,5 +45,5 @@ $ diff bug.c fix.c
 > #include <stdatomic.h>
 > 
 12a15
-> 	atomic_memory_fence(memory_order_acquire);
+> 	atomic_thread_fence(memory_order_acquire);
 ```
