@@ -13,9 +13,9 @@ crypto_hash_sha512_update(crypto_hash_sha512_state *state,
         return 0;
     }
     atomic_thread_fence(memory_order_acquire);
-    r = (unsigned long long) ((state->count[1] >> 3) & 0x7f);
+    r = (unsigned long long) ((state->count[1] >> 3) & 0x7f); // <<< speculative store bypass
     /* ... */
-    if (inlen < 128 - r) {
+    if (inlen < 128 - r) { // <<< insecure branch on secret `r`
         for (i = 0; i < inlen; i++) {
             state->buf[r + i] = in[i];
         }
