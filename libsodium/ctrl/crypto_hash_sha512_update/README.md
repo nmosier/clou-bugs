@@ -1,4 +1,4 @@
-## Spectre v4 Vulnerability (Variant A')
+## Spectre v4 Vulnerability (Variant B')
 
 ### Location
 - Function: `crypto_hash_sha512_update`
