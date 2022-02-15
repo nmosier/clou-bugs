@@ -1,33 +1,49 @@
-## Spectre v4 Vulnerability (Variant B')
+## Spectre v4 Vulnerability (Variant A')
 
 ### Location
-- Function: `HASH_UPDATE`
-- File: [include/crypto/md32_common.h:138](https://github.com/openssl/openssl/blob/065121ff198a84106023013420dedd57ac4ff53a/include/crypto/md32_common.h#L138)
+- Function: `_crypto_sign_ed25519_verify_detached`
+- File: [crypto_sign/ed25519/ref10/open.c:27,31](https://github.com/jedisct1/libsodium/blob/d30251f03e646abd07b5399654f1f5dcea9a6b38/src/libsodium/crypto_sign/ed25519/ref10/open.c#L27)
 
 ### Code Snippet
 ```
-int HASH_UPDATE(HASH_CTX *c, const void *data_, size_t len)
+int
+_crypto_sign_ed25519_verify_detached(const unsigned char *sig,
+                                     const unsigned char *m,
+                                     unsigned long long   mlen,
+                                     const unsigned char *pk,
+                                     int prehashed)
 {
+    crypto_hash_sha512_state hs;
+    unsigned char            h[64];
+    unsigned char            rcheck[32];
+    ge25519_p3               A;
+    ge25519_p2               R;
+
+#ifdef ED25519_COMPAT
+    if (sig[63] & 224) { // <<< speculative store bypass of `sig` results in branch on secret
+        return -1;
+    }
+#else
+    if ((sig[63] & 240) != 0 && // <<< speculative store bypass of `sig` results in branch on secret
+        sc25519_is_canonical(sig + 32) == 0) {
+        return -1;
+    }
     /* ... */
-    HASH_LONG l;
-    /* ... */
-    l = (c->Nl + (((HASH_LONG) len) << 3)) & 0xffffffffUL; // <<< speculative store bypass
-    if (l < c->Nl) // <<< branch on secret
-        c->Nh++;
+#endif
     /* ... */
 }
 ```
 
 ### Explanation
-The struct pointer parameter `c` is stored to the stack upon entry to the function.
-The subsequent load of `c` on line 138 may read the stale value at that stack memory location via Speculative Store Bypass ([CVE-2018-3639](https://cve.org/CVERecord?id=CVE-2018-3639)).
-If that stale value is attacker-controlled, the struct member access `c->Nl` on line 145 may read an arbitrary secret from memory, which is subsequently stored to the stack in variable `l`.
-The if-statement on line 139 branches on `l`, which contains a secret, thereby a one-bit function of the secret.
+The pointer parameter `sig` is stored to the stack upon entry to the function.
+The subsequent loads of `sig` on lines 27 and 31 may read the stale value at that stack memory location via Speculative Store Bypass ([CVE-2018-3639](https://cve.org/CVERecord?id=CVE-2018-3639)).
+If that stale value is attacker-controlled, the array access `sig[63]` on lines 27 and 31 may read an arbitrary secret from memory.
+A 1-bit function of this secret leaks through the branch predicates on lines 27 and 31.
 
 This vulnerability may allow an attacker to leak one bit for arbitrary data in memory.
 
 ### Suggested Fix
-Insert a fence right before line 138 to ensure the store of parameter `c` cannot be bypassed. See [fix.c](fix.c).
+Insert a fence right before line 26 to ensure the store of parameter `sig` cannot be bypassed. See [fix.c](fix.c).
 ```
 $ diff bug.c fix.c
 0a1,2
