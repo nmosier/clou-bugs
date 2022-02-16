@@ -5,8 +5,8 @@ int SSL_get_shared_sigalgs(SSL *s, int idx,
     const SIGALG_LOOKUP *shsigalgs;
     if (s->shared_sigalgs == NULL
         || idx < 0
-        || idx >= (int)s->shared_sigalgslen
-        || s->shared_sigalgslen > INT_MAX) // <<< bypassed bounds check (Spectre v1)
+        || idx >= (int)s->shared_sigalgslen // <<< bypassed bounds check (Spectre v1)
+        || s->shared_sigalgslen > INT_MAX)
         return 0;
     shsigalgs = s->shared_sigalgs[idx]; // <<< out-of-bounds array access using attacker-controlled index
     if (phash != NULL)
