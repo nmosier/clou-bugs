@@ -39,14 +39,6 @@ When the tainted pointer `shsigalgs` is accessed on line 2420, it leaks the secr
 This vulnerability may allow an attacker to leak arbitrary data in memory and appears to be highly exploitable,
 since it is via a classic Spectre v1 gadget in the public API function [SSL_get_shared_sigalgs](https://www.openssl.org/docs/man3.0/man3/SSL_get_shared_sigalgs.html).
 
-
-The struct pointer parameter `c` is stored to the stack upon entry to the function.
-The subsequent load of `c` on line 145 may read the stale value at that stack memory location via Speculative Store Bypass ([CVE-2018-3639](https://cve.org/CVERecord?id=CVE-2018-3639)).
-If that stale value is attacker-controlled, the struct member access `c->num` on line 145 may read an arbitrary secret from memory, which is subsequently stored to the stack in index `n`.
-Index `n` is then used in pointer arithmetic with `p` and then dereferenced by `memcpy()` on lines 150 and 164, leaking the value of the secret in `n`.
-
-This vulnerability may allow an attacker to leak arbitrary data in memory.
-
 ### Suggested Fix
 Insert a fence right before line 145 to ensure the store of parameter `c` cannot be bypassed. See [fix.c](fix.c).
 ```
