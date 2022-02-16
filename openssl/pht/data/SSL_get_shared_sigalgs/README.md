@@ -40,7 +40,7 @@ This vulnerability may allow an attacker to leak arbitrary data in memory and ap
 since it is via a classic Spectre v1 gadget in the public API function [SSL_get_shared_sigalgs](https://www.openssl.org/docs/man3.0/man3/SSL_get_shared_sigalgs.html).
 
 ### Suggested Fix
-Insert a fence right before line 145 to ensure the store of parameter `c` cannot be bypassed. See [fix.c](fix.c).
+Insert a fence right before line 2418 to ensure the bounds check cannot be bypassed. See [fix.c](fix.c).
 ```
 $ diff bug.c fix.c
 0a1,2
